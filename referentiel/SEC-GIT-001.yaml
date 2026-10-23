@@ -1,159 +1,70 @@
-from pathlib import Path
+# SEC-GIT-001.yaml définit le contrôle des secrets dans Git. Les paramètres du DAGD précisent les exigences et particularités du projet audité.
 
-script = r'''#!/usr/bin/env python3
-"""Contrôle SEC-GIT-001 : détection de secrets dans un dépôt Git avec Gitleaks.
+identification:
+  id: "SEC-GIT-001"
+  nom: "Absence de secrets en clair dans Git"
+  description: >
+    Vérifier l'absence de secrets en clair dans le code
+    et dans l'historique Git accessible du dépôt.
 
-Prérequis : Python 3.10+ et Gitleaks v8 installé et disponible dans PATH.
-Usage : python audit_sec_git_001.py /chemin/vers/le/depot
-"""
+source_officielle:
+  type: "Confluence"
+  reference: null
 
-from __future__ import annotations
+perimetre:
+  cible: "Dépôt Git"
+  inclus:
+    - "Fichiers actuellement présents dans le dépôt"
+    - "Historique des commits accessible"
 
-import argparse
-import json
-import shutil
-import subprocess
-import sys
-import tempfile
-from pathlib import Path
-from typing import Any
+preuves_attendues:
+  elements:
+    - "Chemin du fichier concerné"
+    - "Numéro de ligne, si disponible"
+    - "Identifiant du commit, si applicable"
+    - "Type de secret détecté"
+  confidentialite:
+    - "Ne jamais afficher ni enregistrer la valeur du secret en clair"
 
+entrees_necessaires:
+  - "Accès en lecture au dépôt Git"
+  - "Historique Git accessible"
+  - "Configuration de détection des secrets"
 
-def main() -> int:
-    parser = argparse.ArgumentParser(
-        description="Exécute le contrôle SEC-GIT-001 avec Gitleaks."
-    )
-    parser.add_argument("depot", help="Chemin vers le dépôt Git à analyser")
-    args = parser.parse_args()
+methode_verification:
+  outil: "Gitleaks"
+  orchestration: "Python"
+  etapes:
+    - "Analyser les fichiers actuels du dépôt"
+    - "Analyser l'historique Git accessible"
+    - "Récupérer les résultats structurés de Gitleaks"
+    - "Normaliser les résultats"
+    - "Masquer les valeurs sensibles avant journalisation ou transmission"
+    - "Appliquer les critères de décision"
 
-    depot = Path(args.depot).expanduser().resolve()
-    if not depot.is_dir():
-        return emit("erreur_technique", "Le chemin du dépôt n'est pas un dossier.")
+criteres_decision:
+  conforme:
+    condition: >
+      Analyse terminée sur tout le périmètre défini,
+      sans secret détecté, compte tenu des limites de l'outil.
+  non_conforme:
+    condition: "Présence d'un secret confirmée."
+  a_analyser:
+    condition: >
+      Détection suspecte dont la nature ne peut pas
+      être déterminée automatiquement.
+  erreur_technique:
+    condition: >
+      Analyse impossible ou incomplète en raison
+      d'une erreur technique.
 
-    if not (depot / ".git").exists():
-        return emit(
-            "erreur_technique",
-            "Aucun dossier .git trouvé. Fournir un dépôt Git cloné.",
-        )
-
-    executable = shutil.which("gitleaks")
-    if executable is None:
-        return emit(
-            "erreur_technique",
-            "Gitleaks est introuvable dans PATH. Installez-le puis réessayez.",
-        )
-
-    # Le rapport brut peut contenir les secrets : il est temporaire et supprimé.
-    with tempfile.TemporaryDirectory(prefix="sec_git_001_") as temp_dir:
-        report_path = Path(temp_dir) / "gitleaks-report.json"
-        command = [
-            executable,
-            "git",
-            "--report-format", "json",
-            "--report-path", str(report_path),
-            "--no-banner",
-            str(depot),
-        ]
-
-        try:
-            result = subprocess.run(
-                command,
-                stdin=subprocess.DEVNULL,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.PIPE,
-                text=True,
-                timeout=1800,
-                check=False,
-            )
-        except subprocess.TimeoutExpired:
-            return emit(
-                "erreur_technique",
-                "Délai maximal dépassé ; couverture de l'analyse non confirmée.",
-            )
-        except OSError:
-            return emit(
-                "erreur_technique",
-                "Impossible de lancer Gitleaks ; couverture de l'analyse non confirmée.",
-            )
-
-        if not report_path.exists():
-            # Ne pas afficher stderr : il pourrait contenir des données sensibles.
-            return emit(
-                "erreur_technique",
-                f"Gitleaks n'a pas produit de rapport (code de sortie {result.returncode}).",
-            )
-
-        try:
-            raw = report_path.read_text(encoding="utf-8")
-            findings: Any = json.loads(raw) if raw.strip() else []
-            if not isinstance(findings, list):
-                raise ValueError("Format de rapport inattendu")
-        except (OSError, json.JSONDecodeError, ValueError):
-            return emit(
-                "erreur_technique",
-                "Le rapport Gitleaks est illisible ; couverture de l'analyse non confirmée.",
-            )
-
-        # Avec Gitleaks v8, code 0 signifie généralement aucun finding,
-        # code 1 indique des findings. Les autres codes sont traités prudemment.
-        if result.returncode not in (0, 1):
-            return emit(
-                "erreur_technique",
-                f"Gitleaks a échoué (code de sortie {result.returncode}) ; "
-                "couverture de l'analyse non confirmée.",
-            )
-
-        if findings:
-            constats = []
-            for item in findings:
-                if not isinstance(item, dict):
-                    continue
-                constats.append({
-                    "fichier": item.get("File"),
-                    "ligne": item.get("StartLine"),
-                    "commit": item.get("Commit") or None,
-                    "type_detection": item.get("RuleID") or item.get("Description"),
-                    # Ne jamais copier les champs Secret, Match ou tout extrait brut.
-                })
-            return emit(
-                "non_conforme",
-                "Gitleaks a détecté au moins un secret potentiel. Vérification "
-                "humaine recommandée ; aucune valeur secrète n'est affichée.",
-                constats=constats,
-            )
-
-        if result.returncode == 0:
-            return emit(
-                "conforme",
-                "Aucune détection dans le rapport Gitleaks. Ce résultat n'est "
-                "valable que si le dépôt et l'historique requis étaient accessibles "
-                "et si l'exécution a couvert le périmètre prévu.",
-                constats=[],
-            )
-
-        # Code 1 sans finding exploitable : état conservateur.
-        return emit(
-            "a_analyser",
-            "Gitleaks a renvoyé un code signalant une détection, mais aucun constat "
-            "exploitable n'a pu être extrait du rapport.",
-        )
-
-
-def emit(statut: str, justification: str, constats: list[dict] | None = None) -> int:
-    """Produit un résultat JSON sans valeur secrète."""
-    resultat = {
-        "regle": "SEC-GIT-001",
-        "statut": statut,
-        "justification": justification,
-        "constats": constats or [],
-    }
-    print(json.dumps(resultat, ensure_ascii=False, indent=2))
-    return 0 if statut == "conforme" else 1
-
-
-if __name__ == "__main__":
-    sys.exit(main())
-'''
-path = Path("/mnt/data/audit_sec_git_001.py")
-path.write_text(script, encoding="utf-8")
-print(f"Fichier créé : {path} ({path.stat().st_size} octets)")
+constat_et_justification:
+  elements:
+    - "Statut du contrôle"
+    - "Fichiers et lignes concernés, si disponibles"
+    - "Identifiants des commits concernés, si applicables"
+    - "Type de détection"
+    - "Justification de la décision"
+    - "Limites éventuelles de l'analyse"
+  confidentialite:
+    - "Ne jamais inclure de secret en clair dans le rapport"

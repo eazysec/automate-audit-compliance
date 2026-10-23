@@ -1,0 +1,1 @@
+# rulesets : via connecteurs sources (ex. Confluence API)

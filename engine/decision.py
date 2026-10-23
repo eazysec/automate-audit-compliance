@@ -1,1 +1,2 @@
-# Application des critères
+# Application des critères : contrôles de qualité, champs manquants, ambiguïtés, contradiction
+# Le contrôle prévoit les résultats « C », « NC », « à analyser », « erreur technique » et « hors périmètre ». 

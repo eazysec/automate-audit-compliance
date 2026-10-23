@@ -1,0 +1,104 @@
+identification:
+  id: "SEC-ANSIBLE-001"
+  nom: "Protection des tâches sensibles avec no_log"
+  description: >
+    Vérifier que les tâches Ansible susceptibles d'exposer des secrets
+    sont protégées par no_log: true, en tenant compte de la portée et
+    des éventuelles surcharges applicables.
+
+source_officielle:
+  type: null
+  reference: null
+
+perimetre:
+  cibles:
+    - "Playbooks Ansible"
+    - "Fichiers de tâches et rôles Ansible"
+    - "Variables et paramètres permettant d'identifier les tâches sensibles"
+    - "Configuration Ansible pertinente pour interpréter les tâches"
+  execution:
+    - "Pipelines Jenkins qui exécutent les playbooks, lorsque leur configuration est accessible"
+    - "Logs Jenkins associés, uniquement pour rechercher des indices d'exposition"
+  limites:
+    - >
+      L'analyse statique ne prouve pas à elle seule qu'un secret a été exposé
+      dans les logs d'exécution.
+    - >
+      Les logs Jenkins ne sont analysés que si un accès autorisé en lecture
+      est fourni et si leur rétention permet de couvrir la période visée.
+
+preuves_attendues:
+  configuration:
+    - "Chemin du fichier"
+    - "Ligne ou plage de lignes, si disponible"
+    - "Nom ou identifiant de la tâche"
+    - "Valeur explicite de no_log et portée applicable, si déterminables"
+    - "Indices justifiant que la tâche manipule des données sensibles"
+  execution:
+    - "Identifiant du job et du build Jenkins, si disponibles"
+    - "Horodatage ou référence de l'événement, si disponible"
+    - "Type d'indice d'exposition détecté"
+  confidentialite:
+    - "Ne jamais inclure de valeur secrète dans les preuves ou le rapport"
+
+entrees_necessaires:
+  - "Dépôt Git accessible en lecture"
+  - "Playbooks, rôles, tâches et fichiers de variables concernés"
+  - "Conventions ou règles permettant d'identifier les données sensibles"
+  - "Accès en lecture à la configuration Jenkins, si le contrôle du pipeline est inclus"
+  - "Accès en lecture aux logs Jenkins, si le contrôle de l'exposition réelle est inclus"
+  - "Version d'Ansible et contexte d'exécution pertinent, lorsqu'ils sont disponibles"
+
+methode_verification:
+  analyse_statique:
+    - "Parcourir les fichiers Ansible du périmètre"
+    - "Identifier les tâches susceptibles de manipuler des secrets ou données sensibles"
+    - >
+      Évaluer no_log en tenant compte des valeurs explicites et des mécanismes
+      de portée ou d'héritage réellement pris en charge par la version et la
+      structure Ansible analysées.
+    - >
+      Signaler les cas où la valeur effective de no_log ne peut pas être
+      déterminée avec fiabilité.
+  analyse_execution_optionnelle:
+    - "Identifier les pipelines Jenkins qui exécutent les playbooks concernés"
+    - "Analyser les logs accessibles à la recherche d'indices d'exposition"
+    - "Ne jamais recopier les valeurs détectées dans les sorties"
+  traitement:
+    - "Normaliser les constats"
+    - "Masquer les valeurs sensibles avant journalisation ou transmission"
+    - "N'utiliser un LLM interne qu'en complément, avec un contexte expurgé"
+    - "Conserver les références minimales permettant de retrouver le constat"
+
+criteres_decision:
+  conforme:
+    condition: >
+      Les tâches sensibles identifiées sont protégées par no_log: true selon
+      l'évaluation applicable, et l'analyse a couvert le périmètre déclaré.
+      Si l'analyse des logs est requise, elle doit également avoir été réalisée.
+  non_conforme:
+    condition: >
+      Une tâche sensible est déterminée comme non protégée par no_log: true,
+      ou une exposition de données sensibles est constatée dans des logs.
+  a_analyser:
+    condition: >
+      La sensibilité d'une tâche, la portée effective de no_log ou un indice
+      trouvé dans les logs ne peut pas être déterminé automatiquement.
+  erreur_technique:
+    condition: >
+      L'accès au dépôt ou aux sources requises est impossible, l'analyse échoue
+      ou le périmètre ne peut pas être couvert. Une analyse incomplète ne doit
+      pas être déclarée conforme.
+
+constat_et_justification:
+  elements:
+    - "Statut du contrôle"
+    - "Chemin, ligne et nom de la tâche, si disponibles"
+    - "Justification de la sensibilité suspectée ou confirmée"
+    - "Évaluation de no_log et explication de la portée retenue"
+    - "Référence du job/build Jenkins, si un constat d'exécution existe"
+    - "Limites et éléments non analysés"
+    - "Recommandation de correction"
+  confidentialite:
+    - "Ne jamais afficher de secret en clair"
+    - "Ne pas conserver d'extraits bruts de logs pouvant contenir des secrets"

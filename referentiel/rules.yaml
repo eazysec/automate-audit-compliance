@@ -1,1 +1,2 @@
-# Référentiel des règles
+# Cadre de référence général : décrit les composants, les responsabilités et les principes de sécurité communs à tous les projets : gestionnaire de secrets, GitLab, Jenkins, Ansible, bastion et tenant OpenStack cible.
+# Référentiel des règles : référentiel versionné des contrôles

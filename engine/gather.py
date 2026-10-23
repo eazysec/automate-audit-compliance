@@ -1,1 +1,1 @@
-# Accès au outils et collecte 
+# Accès au outils et collecte : programme qui collecte les éléments pour les vérifications techniques

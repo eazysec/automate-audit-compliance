@@ -1,0 +1,4 @@
+# Extraction et normalisation du contenu en représentation exploitable : préparation du contenu, découpage et conservation du contexte
+# Par exemple, un tableau Confluence est converti en texte structuré, en conservant les relations entre les colonnes pour les images, on utilise si nécessaire de la reconnaissance de texte (OCR) ou un modèle capable d'analyser des images.
+# Si une image contient un tableau illisible ou une règle partiellement extraite, le système signale le problème au lieu d'inventer le contenu manquant.
+# Chaque extrait reste associé à sa page, sa section et sa version.Texte, tableaux, images, métadonnées

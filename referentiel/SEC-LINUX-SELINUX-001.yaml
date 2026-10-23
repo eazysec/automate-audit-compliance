@@ -1,0 +1,88 @@
+identification:
+  id: "SEC-LINUX-SELINUX-001"
+  nom: "SELinux configuré en mode enforcing"
+  description: >
+    Vérifier que SELinux est activé et configuré en mode enforcing
+    sur les systèmes Linux concernés par le contrôle.
+
+source_officielle:
+  type: null
+  reference: null
+  remarque: >
+    À compléter avec la politique de durcissement applicable
+    (par exemple, référentiel interne ou benchmark approuvé).
+
+perimetre:
+  cible: "Systèmes Linux dans le périmètre d'audit"
+  inclus:
+    - "État SELinux en cours d'exécution"
+    - "Mode SELinux configuré de manière persistante"
+    - "Hôtes effectivement interrogés et résultats de collecte"
+  exclusions:
+    - "Systèmes non compatibles SELinux, à identifier explicitement"
+    - "Systèmes non accessibles, qui ne peuvent pas être déclarés conformes"
+
+preuves_attendues:
+  elements:
+    - "Identifiant ou nom de l'hôte audité"
+    - "Valeur de l'état SELinux en cours d'exécution"
+    - "Valeur du mode configuré de manière persistante"
+    - "Horodatage de la collecte"
+    - "Source de la preuve (commande ou outil de collecte)"
+  confidentialite:
+    - "Ne pas inclure de données sensibles sans rapport avec ce contrôle"
+
+entrees_necessaires:
+  - "Liste des hôtes Linux inclus dans le périmètre"
+  - "Accès en lecture ou mécanisme de collecte autorisé sur ces hôtes"
+  - "Outil de collecte (par exemple, Ansible ou agent d'audit)"
+  - "Référentiel de durcissement approuvé et exceptions autorisées"
+
+methode_verification:
+  orchestration: "Python"
+  collecte:
+    - "Collecter l'état SELinux courant, par exemple via getenforce ou sestatus"
+    - "Collecter le mode configuré de façon persistante, par exemple via la configuration SELinux du système"
+    - "Associer chaque résultat à l'hôte concerné et à l'horodatage"
+  evaluation:
+    - "Comparer l'état courant à enforcing"
+    - "Comparer le mode persistant à enforcing"
+    - "Vérifier que tous les hôtes du périmètre ont un résultat exploitable"
+  securite:
+    - "Utiliser des accès minimaux et une collecte autorisée"
+    - "Ne pas modifier la configuration pendant un contrôle en lecture seule"
+
+criteres_decision:
+  conforme:
+    condition: >
+      SELinux est en mode enforcing à l'exécution et le mode persistant
+      est configuré sur enforcing, pour un hôte compatible et correctement
+      interrogé.
+  non_conforme:
+    condition: >
+      SELinux est disabled ou permissive, ou le mode persistant n'est pas
+      configuré sur enforcing, sauf exception formellement approuvée.
+  a_analyser:
+    condition: >
+      Les valeurs sont contradictoires, la configuration persistante ne peut
+      pas être déterminée, ou une exception nécessite une validation.
+  erreur_technique:
+    condition: >
+      Hôte inaccessible, commande indisponible, collecte incomplète ou résultat
+      impossible à interpréter. Une erreur technique ne vaut pas conformité.
+  hors_perimetre:
+    condition: >
+      Le système n'est pas compatible SELinux, si cette exclusion est confirmée
+      et documentée par la politique applicable.
+
+constat_et_justification:
+  elements:
+    - "Identifiant ou nom de l'hôte"
+    - "Statut du contrôle"
+    - "État SELinux courant collecté"
+    - "Mode persistant collecté"
+    - "Horodatage et source de collecte"
+    - "Écart constaté et justification"
+    - "Exception approuvée, le cas échéant"
+  confidentialite:
+    - "Ne pas inclure de secrets ni de données sans rapport avec le contrôle"

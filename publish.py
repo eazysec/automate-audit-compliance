@@ -1,0 +1,3 @@
+# Publier les contrôles validés : une fois la fiche validée, elle est enregistrée dans un référentiel versionné.
+# 3 statuts pour la fiche : Brouillon (proposition produite par l'IA, pas encore validée), À clarifier (une décision ou une information manque), Validé (la fiche peut être utilisée pour préparer ou exécuter un contrôle)
+# Le moteur d'audit utilisera ce référentiel ensuite pour appliquer les contrôles aux projets.
